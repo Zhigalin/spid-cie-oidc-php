@@ -146,6 +146,8 @@ class TrustChain
 
             // get federation fetch endpoint
             $federation_fetch_endpoint = $entity_statement_payload->metadata->federation_entity->federation_fetch_endpoint;
+            //$federation_fetch_endpoint = Util::stringEndsWith($this->entity, '/') ? $federation_fetch_endpoint : $federation_fetch_endpoint . '/';
+
             $federation_fetch_url = $federation_fetch_endpoint . '?sub=' . $this->leaf;
 
             // fetch metadata from trust anchor

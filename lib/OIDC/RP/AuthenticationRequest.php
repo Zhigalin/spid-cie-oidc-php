@@ -112,7 +112,6 @@ class AuthenticationRequest
 
         /*
         $request = array(
-            "jti" => 'spid-cie-php-oidc_' . uniqid(),
             "iss" => $client_id,
             "aud" => array($op_issuer, $authorization_endpoint),
             "iat" => strtotime("now"),
@@ -127,7 +126,9 @@ class AuthenticationRequest
             "redirect_uri" => $redirect_uri,
             "acr_values" => implode(" ", $acr_values),
             "claims" => $claims,
-            "state" => $state
+            "prompt" => $prompt,
+            "code_challenge" => $code_challenge,
+            "code_challenge_method" => $code_challenge_method
         );
         */
 
@@ -163,7 +164,7 @@ class AuthenticationRequest
             //"x5c" => $crt_jwk['x5c']
         );
 
-        $key = $this->config['cert_private'];
+        $key = $this->config['cert_private_core_sig'];
         $key_jwk = JWT::getKeyJWK($key);
         $signed_request = JWT::makeJWS($header, $request, $key_jwk);
 

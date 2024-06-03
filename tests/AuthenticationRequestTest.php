@@ -66,8 +66,9 @@ class AuthenticationRequestTest extends TestCase
         $database = new RP_Database(__DIR__ . '/tests.sqlite');
         $request = new AuthenticationRequest($config);
 
-        $op_issuer = "https://op.org/auth";
-        $authorization_endpoint = $op_issuer;
+        $authorization_endpoint = "https://op.org/auth";
+        $op_issuer = "https://op.org";
+
         $acr = array(3, 2, 1);
         $user_attributes = array(
             "given_name",
