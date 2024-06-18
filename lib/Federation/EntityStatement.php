@@ -56,12 +56,102 @@ class EntityStatement
      *  creates the JWT to be returned from .well-known/openid-federation endpoint
      *
      * @param              array   $config  base configuration
-     * @param              boolean $decoded if true returns JSON instead of JWS
+     * @param              boolean $json if true returns JSON instead of JWS
      * @throws             Exception
      * @return             mixed
      * @codeCoverageIgnore
      */
-    public static function makeFromConfig(array $config, $json = false)
+    public static function makeSAEntityStatementFromConfig(array $config, $json = false)
+    {
+        $crt_sig = $config['cert_public'];
+        $crt_enc = $config['cert_enc_public'];
+        $crt_sig_jwk = JWT::getCertificateJWK($crt_sig);
+        $crt_enc_jwk = JWT::getCertificateJWK($crt_enc);
+        $crt_jwks = JWT::getCertificateJWK(array($crt_sig, $crt_enc), 'sig+enc');
+
+        $crt_sig_fed = $config['cert_public_fed'];
+        $crt_sig_fed_jwk = JWT::getCertificateJWK($crt_sig_fed);
+        $crt_fed_jwks = JWT::getCertificateJWK($crt_sig_fed, 'sig');
+
+        $payload = array(
+            "sub" => $config['client_id'],
+            "metadata" => array(
+                "federation_entity" => array(
+                    "homepage_uri" => $config['homepage_uri'],
+                    "logo_uri" => $config['logo_uri'],
+                    "organization_name" => $config['organization_name'],
+                    "contacts" => $config['contacts'],
+                    "federation_fetch_endpoint" => $config['client_id'] . '/fetch',
+                    "federation_resolve_endpoint" => $config['client_id'] . '/resolve',
+                    "federation_list_endpoint" => $config['client_id'] . '/list',
+                    "federation_trust_mark_status_endpoint" => $config['client_id'] . '/trust_mark_status',
+                    "policy_uri" => $config['policy_uri'],
+                ),
+
+                /*
+                "openid_relying_party" => array(
+                    "client_registration_types" => $config['client_registration_types'] ?? array( "automatic" ),
+                    "jwks" => array(
+                        "keys" => $crt_jwks
+                    ),
+                    "grant_types" => array(
+                        "refresh_token",        // useful???
+                        "authorization_code"
+                    ),
+                    "application_type" => $config['application_type'] ?? "web",
+                    "redirect_uris" => array( $config['redirect_uri'] ?? ($config['client_id'] . '/oidc/rp/redirect') ),
+                    "id_token_signed_response_alg" => "RS256",
+                    "userinfo_signed_response_alg" => "RS256",
+                    "userinfo_encrypted_response_alg" => "RSA-OAEP",
+                    "userinfo_encrypted_response_enc" => "A256CBC-HS512",
+                    "token_endpoint_auth_method" => "private_key_jwt",
+                    "client_id" => $config['client_id'],
+                    "client_name" => $config['client_name'],
+                    "contacts" => $config['contacts'],
+                    "organization_name" => $config['organization_name'],
+                    //"id_token_encrypted_response_alg" => "RSA-OAEP",
+                    //"id_token_encrypted_response_enc" => "A256CBC-HS512",
+                    "response_types" => array( "code" ),
+                    "subject_type" => $config['subject_type'] ?? "pairwise"
+                )
+                */
+
+            ),
+            "jwks" => array(
+                "keys" => array($crt_fed_jwks)
+            ),
+            "iss" => $config['client_id'],
+            "authority_hints" => array(
+                $config['authority_hint']
+            ),
+            "exp" => strtotime("+2 days"),
+            "iat" => strtotime("-2 seconds"),
+            "trust_marks" => $config['trust_marks'] ?? [],
+        );
+
+        $header = array(
+            "kid" => $crt_sig_fed_jwk['kid'],
+            "typ" => "entity-statement+jwt",
+            "alg" => "RS256",
+        );
+
+        $key = $config['cert_private_fed'];
+        $key_jwk = JWT::getKeyJWK($key);
+        $jws = JWT::makeJWS($header, $payload, $key_jwk);
+
+        return $json ? json_encode($payload) : $jws;
+    }
+
+    /**
+     *  creates the JWT to be returned from @domain/.well-known/openid-federation endpoint
+     *
+     * @param              array   $config  base configuration
+     * @param              boolean $json if true returns JSON instead of JWS
+     * @throws             Exception
+     * @return             mixed
+     * @codeCoverageIgnore
+     */
+    public static function makeRPEntityStatementFromConfig(array $config, $json = false)
     {
         $crt_sig = $config['cert_public'];
         $crt_enc = $config['cert_enc_public'];

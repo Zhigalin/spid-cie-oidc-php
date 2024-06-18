@@ -9,7 +9,7 @@ use SPID_CIE_OIDC_PHP\OIDC\RP\Database;
 class ResolveEndpoint
 {
     /**
-     *  creates a new EntityStatement instance
+     *  creates a new ResolveEndpoint instance
      *
      * @param  string $sub    entity
      * @param  string $anchor Trust Anchor

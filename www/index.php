@@ -27,9 +27,12 @@ require_once __DIR__ . '/../vendor/autoload.php';
 use SPID_CIE_OIDC_PHP\Core\Logger;
 use SPID_CIE_OIDC_PHP\Core\Util;
 use SPID_CIE_OIDC_PHP\Federation\Federation;
+use SPID_CIE_OIDC_PHP\Federation\EntityListingEndpoint;
 use SPID_CIE_OIDC_PHP\Federation\EntityStatement;
 use SPID_CIE_OIDC_PHP\Federation\ResolveEndpoint;
 use SPID_CIE_OIDC_PHP\Federation\TrustChain;
+use SPID_CIE_OIDC_PHP\Federation\TrustMark;
+use SPID_CIE_OIDC_PHP\Federation\TrustMarkStatusEndpoint;
 use SPID_CIE_OIDC_PHP\OIDC\RP\Database as RP_Database;
 use SPID_CIE_OIDC_PHP\OIDC\RP\AuthenticationRequest;
 use SPID_CIE_OIDC_PHP\OIDC\RP\TokenRequest;
@@ -110,19 +113,18 @@ $f3->set(
 
 
 //----------------------------------------------------------------------------------------
-// Routes for @domain Relying Party
+// Routes for SA
 //----------------------------------------------------------------------------------------
 
+// GET /.well-known/openid-federation
 $f3->route(
     [
     'GET /.well-known/openid-federation',
-    'GET /@domain/.well-known/openid-federation'
     ],
     function ($f3) {
-        $domain = $f3->get("PARAMS.domain") ? $f3->get("PARAMS.domain") : $f3->get("CONFIG")['default_domain'];
-        $config = $f3->get("CONFIG")['rp_proxy_clients'][$domain];
+        $config = ($f3->get("CONFIG")['sa']) ?? false;
         if (!$config) {
-            $f3->error(400, "Domain not found");
+            $f3->error(400, "SA configuration not found");
         }
 
         $logger = $f3->get("LOGGER");
@@ -133,10 +135,122 @@ $f3->route(
 
         $mediaType = $json ? 'application/json' : 'application/entity-statement+jwt';
         header('Content-Type: ' . $mediaType);
-        echo EntityStatement::makeFromConfig($config, $json);
+        echo EntityStatement::makeSAEntityStatementFromConfig($config, $json);
     }
 );
 
+// GET /list
+$f3->route(
+    'GET /list',
+    function ($f3) {
+        $config = ($f3->get("CONFIG")['rp_proxy_clients']) ?? false;
+
+        if (!$config) {
+            $f3->error(400, "Clients configuration not found");
+        }
+
+        try {
+            $logger = $f3->get("LOGGER");
+            $logger->log('OIDC', 'GET /list');
+
+            $handler = new EntityListingEndpoint($config);
+            $handler->process();
+ 
+        } catch (\Exception $e) {
+            $f3->error(400, $e->getMessage());
+        }
+    }
+);
+
+// GET /trust_mark
+$f3->route(
+    'GET /trust_mark',
+    function ($f3) {
+        $config = ($f3->get("CONFIG")['sa']) ?? false;
+        if (!$config) {
+            $f3->error(400, "SA configuration not found");
+        }
+
+        $sub = $_GET['sub'];
+        $id = $_GET['id'];
+
+        if (!$sub || !$id) { 
+            $f3->error(400, "sub or id not specified");
+        }
+
+        try {
+            $logger = $f3->get("LOGGER");
+            $logger->log('OIDC', 'POST /trust_mark');
+
+            $mediaType = 'trust-mark+jwt';
+            header('Content-Type: ' . $mediaType);
+
+            $trust_mark = new TrustMark($config, $sub, $id);
+            echo json_encode(array(
+                'id' => $config['client_id'] . '/intermediate/private', 
+                'trust_mark' => $trust_mark->makeJwt()
+            )); 
+
+        } catch (Exception $e) {
+            $f3->error(500, $e->getMessage());
+        }
+    }
+);
+
+// POST /trust_mark_status
+$f3->route(
+    'POST /trust_mark_status',
+    function ($f3) {
+        $config = ($f3->get("CONFIG")['rp_proxy_clients']) ?? false;
+
+        if (!$config) {
+            $f3->error(400, "Clients configuration not found");
+        }
+
+        try {
+            $logger = $f3->get("LOGGER");
+            $logger->log('OIDC', 'GET /trust_mark_status');
+
+            $handler = new TrustMarkStatusEndpoint($config);
+            $handler->process();
+ 
+        } catch (\Exception $e) {
+            $f3->error(400, $e->getMessage());
+        }
+    }
+);
+
+
+//----------------------------------------------------------------------------------------
+// Routes for @domain Relying Party
+//----------------------------------------------------------------------------------------
+
+// GET /@domain/.well-known/openid-federation
+$f3->route(
+    [
+    'GET /@domain/.well-known/openid-federation'
+    ],
+    function ($f3) {
+        $domain = $f3->get("PARAMS.domain") ? $f3->get("PARAMS.domain") : $f3->get("CONFIG")['default_domain'];
+        $config = $f3->get("CONFIG")['rp_proxy_clients'][$domain];
+        if (!$config) {
+            $f3->error(400, "Domain not found");
+        }
+
+        $logger = $f3->get("LOGGER");
+        $logger->log('OIDC', 'GET /'.$domain.'/.well-known/openid-federation');
+
+        $output = $f3->get("GET.output") ?? 'default';
+        $json = (strtolower($output) == 'json');
+
+        $mediaType = $json ? 'application/json' : 'application/entity-statement+jwt';
+        header('Content-Type: ' . $mediaType);
+        echo EntityStatement::makeRPEntityStatementFromConfig($config, $json);
+    }
+);
+
+// GET /oidc/rp/authz
+// GET /oidc/rp/@domain/authz
 $f3->route(
     [
     'GET /oidc/rp/authz',
@@ -177,6 +291,8 @@ $f3->route(
     }
 );
 
+// GET /oidc/rp/authz/@ta/@op
+// GET /oidc/rp/@domain/authz/@ta/@op
 $f3->route(
     [
     'GET /oidc/rp/authz/@ta/@op',
@@ -244,6 +360,8 @@ $f3->route(
     }
 );
 
+// GET /oidc/rp/redirect
+// GET /oidc/rp/@domain/redirect
 $f3->route(
     [
     'GET /oidc/rp/redirect',
@@ -327,6 +445,7 @@ $f3->route(
     }
 );
 
+// GET /resolve
 $f3->route(
     [
     'GET /resolve'
@@ -347,6 +466,8 @@ $f3->route(
     }
 );
 
+// GET /oidc/rp/introspection
+// GET /oidc/rp/@domain/introspection
 $f3->route(
     [
     'GET /oidc/rp/introspection',
@@ -392,6 +513,8 @@ $f3->route(
     }
 );
 
+// GET /oidc/rp/logout
+// GET /oidc/rp/@domain/logout
 $f3->route(
     [
     'GET /oidc/rp/logout',
@@ -450,6 +573,7 @@ $f3->route(
 // Routes for Proxy OIDC Provider
 //----------------------------------------------------------------------------------------
 
+// GET /oidc/proxy/.well-known/openid-configuration
 $f3->route(
     'GET /oidc/proxy/.well-known/openid-configuration',
     function ($f3) {
@@ -465,6 +589,7 @@ $f3->route(
     }
 );
 
+// GET /oidc/proxy/certs
 $f3->route(
     'GET /oidc/proxy/certs',
     function ($f3) {
@@ -480,6 +605,7 @@ $f3->route(
     }
 );
 
+// GET /oidc/proxy/authz
 $f3->route(
     'GET /oidc/proxy/authz',
     function ($f3) {
@@ -495,6 +621,7 @@ $f3->route(
     }
 );
 
+// POST /oidc/proxy/callback
 $f3->route(
     'POST /oidc/proxy/callback',
     function ($f3) {
@@ -510,6 +637,7 @@ $f3->route(
     }
 );
 
+// POST /oidc/proxy/token
 $f3->route(
     'POST /oidc/proxy/token',
     function ($f3) {
@@ -525,6 +653,7 @@ $f3->route(
     }
 );
 
+// POST /oidc/proxy/userinfo
 $f3->route(
     'POST /oidc/proxy/userinfo',
     function ($f3) {
@@ -540,6 +669,7 @@ $f3->route(
     }
 );
 
+// GET /oidc/proxy/session/end
 $f3->route(
     'GET /oidc/proxy/session/end',
     function ($f3) {
