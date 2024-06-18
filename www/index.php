@@ -27,6 +27,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 use SPID_CIE_OIDC_PHP\Core\Logger;
 use SPID_CIE_OIDC_PHP\Core\Util;
 use SPID_CIE_OIDC_PHP\Federation\Federation;
+use SPID_CIE_OIDC_PHP\Federation\FetchEntityStatementEndpoint;
 use SPID_CIE_OIDC_PHP\Federation\EntityListingEndpoint;
 use SPID_CIE_OIDC_PHP\Federation\EntityStatement;
 use SPID_CIE_OIDC_PHP\Federation\ResolveEndpoint;
@@ -139,6 +140,30 @@ $f3->route(
     }
 );
 
+// GET /fetch
+$f3->route(
+    'GET /fetch',
+    function ($f3) {
+        if (!$f3->get("CONFIG")) $f3->error(400, "Configuration not found");
+        if (!$f3->get("CONFIG")['sa']) $f3->error(400, "SA configuration not found");
+        if (!$f3->get("CONFIG")['rp_proxy_clients']) $f3->error(400, "Clients configuration not found");
+
+        $sa_config = $f3->get("CONFIG")['sa'];
+        $rp_config = $f3->get("CONFIG")['rp_proxy_clients'];
+
+        try {
+            $logger = $f3->get("LOGGER");
+            $logger->log('OIDC FED /fetch', 'GET ' . $_SERVER['REQUEST_URI']);
+
+            $handler = new FetchEntityStatementEndpoint($sa_config, $rp_config);
+            $handler->process();
+ 
+        } catch (\Exception $e) {
+            $f3->error(400, $e->getMessage());
+        }
+    } 
+);
+
 // GET /list
 $f3->route(
     'GET /list',
@@ -245,7 +270,7 @@ $f3->route(
 
         $mediaType = $json ? 'application/json' : 'application/entity-statement+jwt';
         header('Content-Type: ' . $mediaType);
-        echo EntityStatement::makeRPEntityStatementFromConfig($config, $json);
+        echo EntityStatement::makeRPEntityConfigurationFromConfig($config, $json);
     }
 );
 
@@ -326,7 +351,7 @@ $f3->route(
 
         $acr = $config['requested_acr'];
         $user_attributes = $config['spid_user_attributes'];
-        $redirect_uri = $config['redirect_uri'];
+        $redirect_uri = $config['redirect_uri'] ?? $config['client_id'] . '/redirect';
         $req_id = $rp_database->createRequest($ta_id, $op_id, $redirect_uri, $state, $acr, $user_attributes);
         $request = $rp_database->getRequest($req_id);
         $code_verifier = $request['code_verifier'];
