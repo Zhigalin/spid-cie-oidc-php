@@ -34,6 +34,9 @@ use SPID_CIE_OIDC_PHP\Core\Util;
  */
 class AuthenticationRequest
 {
+    private $config;
+    private $hooks;
+    
     /**
      *  creates a new AuthenticationRequest instance
      *
@@ -163,7 +166,7 @@ class AuthenticationRequest
             //"x5c" => $crt_jwk['x5c']
         );
 
-        $key = $this->config['cert_private_core_sig'];
+        $key = $this->config['cert_private'];
         $key_jwk = JWT::getKeyJWK($key);
         $signed_request = JWT::makeJWS($header, $request, $key_jwk);
 

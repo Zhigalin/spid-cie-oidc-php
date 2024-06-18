@@ -32,6 +32,9 @@ use SPID_CIE_OIDC_PHP\OIDC\OP\Database;
  */
 class CertsEndpoint
 {
+    private $config;
+    private $database;
+    
     public $name = "Certs Endpoint";
 
     /**

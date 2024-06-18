@@ -34,6 +34,9 @@ use SPID_CIE_OIDC_PHP\Core\JWT;
  */
 class Metadata
 {
+    private $config;
+    private $metadata;
+
     /**
      *  creates a new Metadata instance
      *
