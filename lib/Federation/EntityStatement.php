@@ -34,6 +34,10 @@ use SPID_CIE_OIDC_PHP\Core\JWT;
  */
 class EntityStatement
 {
+    private $token;
+    private $iss;
+    private $payload;
+
     /**
      *  creates a new EntityStatement instance
      *
@@ -151,7 +155,7 @@ class EntityStatement
      * @return             mixed
      * @codeCoverageIgnore
      */
-    public static function makeRPEntityStatementFromConfig(array $config, $json = false)
+    public static function makeRPEntityConfigurationFromConfig(array $config, $json = false)
     {
         $crt_sig = $config['cert_public'];
         $crt_enc = $config['cert_enc_public'];
@@ -219,6 +223,90 @@ class EntityStatement
         );
 
         $key = $config['cert_private_fed'];
+        $key_jwk = JWT::getKeyJWK($key);
+        $jws = JWT::makeJWS($header, $payload, $key_jwk);
+
+        return $json ? json_encode($payload) : $jws;
+    }
+
+    /**
+     *  creates the JWT to be returned from fetch endpoint for @domain
+     *
+     * @param              array   $sa_config  sa configuration
+     * @param              array   $rp_config  rp configuration
+     * @param              boolean $json if true returns JSON instead of JWS
+     * @throws             Exception
+     * @return             mixed
+     * @codeCoverageIgnore
+     */
+    public static function makeRPEntityStatementFromConfig(array $sa_config, array $rp_config, $json = true)
+    {
+        $crt_sig = $rp_config['cert_public'];
+        $crt_enc = $rp_config['cert_enc_public'];
+        $crt_sig_jwk = JWT::getCertificateJWK($crt_sig);
+        $crt_enc_jwk = JWT::getCertificateJWK($crt_enc);
+        $crt_jwks = JWT::getCertificateJWK(array($crt_sig, $crt_enc), 'sig+enc');
+
+        $crt_sig_fed = $sa_config['cert_public_fed'];
+        $crt_sig_fed_jwk = JWT::getCertificateJWK($crt_sig_fed);
+        $crt_fed_jwks = JWT::getCertificateJWK($crt_sig_fed, 'sig');
+
+        $payload = array(
+            "sub" => $rp_config['client_id'],
+            "metadata" => array(
+                "federation_entity" => array(
+                    "homepage_uri" => $rp_config['homepage_uri'],
+                    "logo_uri" => $rp_config['logo_uri'],
+                    "organization_name" => $rp_config['organization_name'],
+                    "contacts" => $rp_config['contacts'],
+                    "federation_resolve_endpoint" => $rp_config['client_id'] . '/resolve',
+                    "policy_uri" => $rp_config['policy_uri']
+                ),
+                "openid_relying_party" => array(
+                    "client_registration_types" => $rp_config['client_registration_types'] ?? array( "automatic" ),
+                    "jwks" => array(
+                        "keys" => $crt_jwks
+                    ),
+                    "grant_types" => array(
+                        "refresh_token",        // useful???
+                        "authorization_code"
+                    ),
+                    "application_type" => $rp_config['application_type'] ?? "web",
+                    "redirect_uris" => array( $rp_config['redirect_uri'] ?? ($rp_config['client_id'] . '/oidc/rp/redirect') ),
+                    "id_token_signed_response_alg" => "RS256",
+                    "userinfo_signed_response_alg" => "RS256",
+                    "userinfo_encrypted_response_alg" => "RSA-OAEP",
+                    "userinfo_encrypted_response_enc" => "A256CBC-HS512",
+                    "token_endpoint_auth_method" => "private_key_jwt",
+                    "client_id" => $rp_config['client_id'],
+                    "client_name" => $rp_config['client_name'],
+                    "contacts" => $rp_config['contacts'],
+                    "organization_name" => $rp_config['organization_name'],
+                    //"id_token_encrypted_response_alg" => "RSA-OAEP",
+                    //"id_token_encrypted_response_enc" => "A256CBC-HS512",
+                    "response_types" => array( "code" ),
+                    "subject_type" => $rp_config['subject_type'] ?? "pairwise"
+                )
+            ),
+            "jwks" => array(
+                "keys" => array($crt_fed_jwks)
+            ),
+            "iss" => $sa_config['client_id'],
+            "authority_hints" => array(
+                $rp_config['authority_hint']
+            ),
+            "exp" => strtotime("+2 days"),
+            "iat" => strtotime("-2 seconds"),
+            "trust_marks" => $rp_config['trust_marks'] ?? [], 
+        );
+
+        $header = array(
+            "kid" => $crt_sig_fed_jwk['kid'],
+            "typ" => "entity-statement+jwt",
+            "alg" => "RS256",
+        );
+
+        $key = $sa_config['cert_private_fed'];
         $key_jwk = JWT::getKeyJWK($key);
         $jws = JWT::makeJWS($header, $payload, $key_jwk);
 
@@ -296,7 +384,7 @@ class EntityStatement
         $policy = $payload->metadata_policy;
 
         foreach ($policy as $entity_type => $entity_policy) {
-            if ($this->payload->metadata->$entity_type != null) {
+            if (isset($this->payload->metadata->$entity_type) && $this->payload->metadata->$entity_type != null) {
                 foreach ($entity_policy as $policy_claim => $policy_rule) {
                     if ($this->payload->metadata->$entity_type->$policy_claim != null) {
                         foreach ($policy_rule as $policy_modifier => $policy_value) {
