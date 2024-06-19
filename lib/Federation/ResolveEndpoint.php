@@ -6,6 +6,7 @@ use SPID_CIE_OIDC_PHP\Core\Util;
 use SPID_CIE_OIDC_PHP\Core\JWT;
 use SPID_CIE_OIDC_PHP\OIDC\RP\Database;
 
+// TODO
 class ResolveEndpoint
 {
     /**
