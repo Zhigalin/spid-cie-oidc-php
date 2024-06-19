@@ -34,6 +34,11 @@ use GuzzleHttp\Client;
  */
 class UserinfoRequest
 {
+    private $config;
+    private $op_metadata;
+    private $hooks;
+    private $http_client;
+
     /**
      *  creates a new UserinfoRequest instance
      *
@@ -115,10 +120,10 @@ class UserinfoRequest
         }
         // @codeCoverageIgnoreEnd
 
-        $file_key = $this->config['cert_enc_private'];
+        $file_key = $this->config['cert_enc_private']; 
         $jws = JWT::decryptJWE($jwe, $file_key);
 
-        $file_cert = $this->config['cert_public_core_enc'];
+        $file_cert = $this->config['cert_enc_public'];
         $decrypted = $jws->getPayload();
         $decrypted = str_replace("\"", "", $decrypted);
 
