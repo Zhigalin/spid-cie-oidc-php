@@ -212,7 +212,8 @@ $f3->route(
 
             $trust_mark = new TrustMark($config, $sub, $id);
             echo json_encode(array(
-                'id' => $config['client_id'] . '/intermediate/private', 
+                'id' => $id, 
+                'iss' => $config['client_id'],
                 'trust_mark' => $trust_mark->makeJwt()
             )); 
 
