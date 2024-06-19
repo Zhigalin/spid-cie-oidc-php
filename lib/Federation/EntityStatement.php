@@ -155,7 +155,7 @@ class EntityStatement
      * @return             mixed
      * @codeCoverageIgnore
      */
-    public static function makeRPEntityConfigurationFromConfig(array $config, $json = false)
+    public static function makeRPEntityConfigurationFromConfig(string $base, string $domain, array $config, $json = false)
     {
         $crt_sig = $config['cert_public'];
         $crt_enc = $config['cert_enc_public'];
@@ -188,7 +188,7 @@ class EntityStatement
                         "authorization_code"
                     ),
                     "application_type" => $config['application_type'] ?? "web",
-                    "redirect_uris" => array( $config['redirect_uri'] ?? ($config['client_id'] . '/oidc/rp/redirect') ),
+                    "redirect_uris" => array( $config['redirect_uri'] ?? $base . '/oidc/rp/' . $domain . '/redirect' ),
                     "id_token_signed_response_alg" => "RS256",
                     "userinfo_signed_response_alg" => "RS256",
                     "userinfo_encrypted_response_alg" => "RSA-OAEP",
