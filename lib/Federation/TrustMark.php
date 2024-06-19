@@ -43,6 +43,11 @@ class TrustMark
     private array $config;
     private string $sub;
     private string $id;
+    private string $organization_type;
+    private array $id_code;
+    private string $email;
+    private string $organization_name;
+    private $sa_profile;
 
     /**
      *  creates a new TrustMark instance
@@ -53,11 +58,16 @@ class TrustMark
      * @throws Exception
      * @return TrustMark
      */
-    public function __construct(array $config, string $sub, string $id)
+    public function __construct(array $config, string $sub, string $id, string $organization_type, array $id_code, string $email, string $organization_name, $sa_profile)
     {
         $this->config = $config;
         $this->sub = $sub;
         $this->id = $id;
+        $this->organization_type = $organization_type;
+        $this->id_code = $id_code; 
+        $this->email = $email;
+        $this->organization_name = $organization_name;
+        $this->sa_profile = $sa_profile ?? null;
     }
 
     /**
@@ -73,14 +83,20 @@ class TrustMark
         $jwk_pem    = $this->config['cert_private_fed'];
 
         $data = [
-            'iss'  => $this->config['client_id'],   // Issuer
-            'sub'  => $this->sub,                   // Subject of the trust mark
-            'id'   => $this->id,                    // id of the trust mark
-            'iat'  => $iat->getTimestamp(),         // Issued at: time when the trust mark was generated
-            // logo_uri optional
-            // exp optional
-            // ref optional
+            'iss' => $this->config['client_id'],
+            'sub' => $this->sub,
+            'id' => $this->id,
+            'iat' => strtotime("-2 seconds"),
+            'logo_uri' => $this->config['client_id'] . '/tm/' . base64_encode($this->id) . '.png',
+            'exp' => strtotime("+1 years"),
+            'ref' => $this->config['client_id'] . '/tm/' . base64_encode($this->id) . '.txt',
+            'organization_type' => $this->organization_type,
+            'id_code' => $this->id_code,
+            'email' => $this->email,
+            'organization_name' => $this->organization_name,
         ]; 
+
+        if($this->sa_profile) $data['sa_profile'] = $this->sa_profile;
 
         $algorithmManager = new AlgorithmManager([new RS256()]);
         $jwk = JWT::getKeyJWK($jwk_pem);

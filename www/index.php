@@ -187,30 +187,38 @@ $f3->route(
     }
 );
 
-// GET /trust_mark
+// POST /trust_mark
 $f3->route(
-    'GET /trust_mark',
+    'POST /trust_mark',
     function ($f3) {
         $config = ($f3->get("CONFIG")['sa']) ?? false;
         if (!$config) {
             $f3->error(400, "SA configuration not found");
         }
 
-        $sub = $_GET['sub'];
-        $id = $_GET['id'];
+        $sub = $_POST['sub'] ?? null;
+        $id = $_POST['id'] ?? null;
+        $organization_type = $_POST['organization_type'] ?? null;
+        $id_code = $_POST['id_code'] ?? null;
+        $email = $_POST['email'] ?? null;
+        $organization_name = $_POST['organization_name'] ?? null;
+        $sa_profile = $_POST['sa_profile'] ?? null;
 
-        if (!$sub || !$id) { 
-            $f3->error(400, "sub or id not specified");
-        }
+        if (!$sub) $f3->error(400, "sub is mandatory");
+        if (!$id) $f3->error(400, "id is mandatory");
+        if (!$organization_type) $f3->error(400, "organization_type is mandatory");
+        if (!$id_code) $f3->error(400, "id_code is mandatory");
+        if (!$email) $f3->error(400, "email is mandatory");
+        if (!$organization_name) $f3->error(400, "organization_name is mandatory");
 
         try {
             $logger = $f3->get("LOGGER");
             $logger->log('OIDC', 'POST /trust_mark');
 
-            $mediaType = 'trust-mark+jwt';
+            $mediaType = 'application/json';
             header('Content-Type: ' . $mediaType);
 
-            $trust_mark = new TrustMark($config, $sub, $id);
+            $trust_mark = new TrustMark($config, $sub, $id, $organization_type, $id_code, $email, $organization_name, $sa_profile);
             echo json_encode(array(
                 'id' => $id, 
                 'iss' => $config['client_id'],
