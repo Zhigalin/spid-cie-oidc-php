@@ -252,7 +252,13 @@ class EntityStatement
         $crt_fed_jwks = JWT::getCertificateJWK($crt_sig_fed, 'sig');
 
         $payload = array(
-            "sub" => $rp_config['client_id'],
+            "iss" => $sa_config['client_id'],
+            "sub" => $rp_config['client_id'], 
+            "exp" => strtotime("+2 days"),
+            "iat" => strtotime("-2 seconds"),
+            "jwks" => array(
+                "keys" => array($crt_fed_jwks)
+            ),
             "metadata" => array(
                 "federation_entity" => array(
                     "homepage_uri" => $rp_config['homepage_uri'],
@@ -288,16 +294,7 @@ class EntityStatement
                     "subject_type" => $rp_config['subject_type'] ?? "pairwise"
                 )
             ),
-            "jwks" => array(
-                "keys" => array($crt_fed_jwks)
-            ),
-            "iss" => $sa_config['client_id'],
-            "authority_hints" => array(
-                $rp_config['authority_hint']
-            ),
-            "exp" => strtotime("+2 days"),
-            "iat" => strtotime("-2 seconds"),
-            "trust_marks" => $rp_config['trust_marks'] ?? [], 
+            "metadata_policy" => (object) array()
         );
 
         $header = array(
