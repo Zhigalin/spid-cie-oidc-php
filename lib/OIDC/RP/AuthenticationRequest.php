@@ -34,19 +34,28 @@ use SPID_CIE_OIDC_PHP\Core\Util;
  */
 class AuthenticationRequest
 {
+    private $base;
+    private $service;
+    private $domain;
     private $config;
     private $hooks;
     
     /**
      *  creates a new AuthenticationRequest instance
      *
+     * @param  string $base
+     * @param  string $service
+     * @param  string $domain
      * @param  array $config base configuration
      * @param  array $hooks  hooks defined list
      * @throws Exception
      * @return AuthenticationRequest
      */
-    public function __construct(array $config, array $hooks = null)
+    public function __construct(string $base, string $service, string $domain, array $config, array $hooks = null)
     {
+        $this->base = $base;
+        $this->service = $service;
+        $this->domain = $domain;
         $this->config = $config;
         $this->hooks = $hooks;
     }
@@ -66,16 +75,22 @@ class AuthenticationRequest
      */
     public function getRedirectURL(string $op_issuer, string $authorization_endpoint, array $acr, array $user_attributes, string $code_verifier, string $nonce, string $state)
     {
+        $base = $this->base;
+        $service = $this->service;
+        $domain = $this->domain;
+
         $client_id = $this->config['client_id'];
+ 
         if (!empty($this->config['redirect_uri'])) {
             $redirect_uri = $this->config['redirect_uri'];
         } else {
-            $redirect_uri = Util::stringEndsWith($client_id, '/') ? $client_id : $client_id . '/';
-            if ($this->config['service_name'] != '') {
-                $redirect_uri .= $this->config['service_name'] . '/';
+            $redirect_uri = Util::stringEndsWith($base, '/') ? $base : $base . '/';
+            if ($service != '') {
+                $redirect_uri .= $service . '/';
             }
-            $redirect_uri .= 'oidc/rp/redirect';
+            $redirect_uri .= 'oidc/rp/' . $domain . '/redirect';
         }
+
         $response_type = 'code';
         $scope = $config['scope'] ?? 'openid';
         $code_challenge = Util::getCodeChallenge($code_verifier);
@@ -110,29 +125,7 @@ class AuthenticationRequest
                 "given_name" =>  array( "essential" => true )
             ),
             "userinfo" => $userinfo_claims
-        );
-
-        /*
-        $request = array(
-            "iss" => $client_id,
-            "aud" => array($op_issuer, $authorization_endpoint),
-            "iat" => strtotime("now"),
-            "exp" => strtotime("+1 hour"),
-            "client_id" => $client_id,
-            "response_type" => $response_type,
-            "scope" => $scope, //explode(" ", $scope),
-            "code_challenge" => $code_challenge,
-            "code_challenge_method" => $code_challenge_method,
-            "nonce" => $nonce,
-            "prompt" => $prompt,
-            "redirect_uri" => $redirect_uri,
-            "acr_values" => implode(" ", $acr_values),
-            "claims" => $claims,
-            "prompt" => $prompt,
-            "code_challenge" => $code_challenge,
-            "code_challenge_method" => $code_challenge_method
-        );
-        */
+        ); 
 
         $iat = strtotime("now");
         $exp = strtotime("+1 hour");
