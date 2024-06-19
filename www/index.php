@@ -266,6 +266,7 @@ $f3->route(
     ],
     function ($f3) {
         $domain = $f3->get("PARAMS.domain") ? $f3->get("PARAMS.domain") : $f3->get("CONFIG")['default_domain'];
+        $base = $f3->get("CONFIG")['sa']['client_id'];
         $config = $f3->get("CONFIG")['rp_proxy_clients'][$domain];
         if (!$config) {
             $f3->error(400, "Domain not found");
@@ -279,7 +280,7 @@ $f3->route(
 
         $mediaType = $json ? 'application/json' : 'application/entity-statement+jwt';
         header('Content-Type: ' . $mediaType);
-        echo EntityStatement::makeRPEntityConfigurationFromConfig($config, $json);
+        echo EntityStatement::makeRPEntityConfigurationFromConfig($base, $domain, $config, $json);
     }
 );
 
@@ -314,7 +315,7 @@ $f3->route(
             $userinfoResponse = $auth['userinfo'];
             $redirect_uri = $auth['redirect_uri'];
             $state = $auth['state'];
-            $responseHandlerClass = $config['response_handler'];
+            $responseHandlerClass = $config['proxy_response_handler'];
             $responseHandler = new $responseHandlerClass($config);
             $responseHandler->sendResponse($redirect_uri, $userinfoResponse, $state);
             die();
@@ -334,6 +335,8 @@ $f3->route(
     ],
     function ($f3) {
         $domain = $f3->get("PARAMS.domain") ? $f3->get("PARAMS.domain") : $f3->get("CONFIG")['default_domain'];
+        $service_name = $f3->get("CONFIG")['service_name'];
+        $base = $f3->get("CONFIG")['sa']['client_id'];
         $config = $f3->get("CONFIG")['rp_proxy_clients'][$domain];
         if (!$config) {
             $f3->error(400, "Domain not found");
@@ -360,8 +363,8 @@ $f3->route(
 
         $acr = $config['requested_acr'];
         $user_attributes = $config['spid_user_attributes'];
-        $redirect_uri = $config['redirect_uri'] ?? $config['client_id'] . '/redirect';
-        $req_id = $rp_database->createRequest($ta_id, $op_id, $redirect_uri, $state, $acr, $user_attributes);
+        $proxy_redirect_uri = $config['proxy_redirect_uri'];
+        $req_id = $rp_database->createRequest($ta_id, $op_id, $proxy_redirect_uri, $state, $acr, $user_attributes);
         $request = $rp_database->getRequest($req_id);
         $code_verifier = $request['code_verifier'];
         $nonce = $request['nonce'];
@@ -380,8 +383,8 @@ $f3->route(
 
         $authorization_endpoint = $configuration->metadata->openid_provider->authorization_endpoint;
         $op_issuer = $configuration->metadata->openid_provider->issuer;
-
-        $authenticationRequest = new AuthenticationRequest($config, $hooks);
+ 
+        $authenticationRequest = new AuthenticationRequest($base, $service_name, $domain, $config, $hooks);
         $authenticationRequestURL = $authenticationRequest->send(
             $op_issuer,
             $authorization_endpoint,
@@ -469,7 +472,7 @@ $f3->route(
             $userinfoResponse->trust_anchor_id = $ta_id;
             $userinfoResponse->provider_id = $op_id;
 
-            $responseHandlerClass = $config['response_handler'];
+            $responseHandlerClass = $config['proxy_response_handler'];
             $responseHandler = new $responseHandlerClass($config);
             $responseHandler->sendResponse($redirect_uri, $userinfoResponse, $state);
         } catch (Exception $e) {
