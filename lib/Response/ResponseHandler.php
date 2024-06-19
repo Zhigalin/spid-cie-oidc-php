@@ -49,6 +49,8 @@ use Jose\Component\Encryption\JWEDecrypter;
  */
 abstract class ResponseHandler
 {
+    private $config;
+    
     /**
      *  creates a new <ResponseHandler> instance
      *
