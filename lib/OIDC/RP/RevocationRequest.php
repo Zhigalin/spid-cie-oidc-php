@@ -34,6 +34,10 @@ use GuzzleHttp\Client;
  */
 class RevocationRequest
 {
+    private $config;
+    private $http_client;
+    private $response;
+
     /**
      *  creates a new RevocationRequest instance
      *
@@ -77,7 +81,7 @@ class RevocationRequest
         );
         $client_assertion_type = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
 
-        $crt = $this->config['cert_public_core_sig'];
+        $crt = $this->config['cert_public'];
         $crt_jwk = JWT::getCertificateJWK($crt);
 
         $header = array(
