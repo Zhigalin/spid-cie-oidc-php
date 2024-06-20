@@ -43,7 +43,7 @@ class ResponseHandlerPlain extends ResponseHandler
     {
         echo "<form name='spidauth' action='" . $redirect_uri . "' method='POST'>";
         foreach ($data as $attribute => $value) {
-            echo "<input type='hidden' name='" . $attribute . "' value='" . $value . "' />";
+            echo "<input type='hidden' name='" . $attribute . "' value=\"" . $value . "\" />";
         }
         echo "<input type='hidden' name='state' value='" . $state . "' />";
         echo "</form>";
