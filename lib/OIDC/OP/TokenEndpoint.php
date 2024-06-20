@@ -144,16 +144,14 @@ class TokenEndpoint
             $this->database->log("TokenEndpoint", "ID_TOKEN", $id_token);
 
             header('Content-Type: application/json; charset=utf-8');
-            $response = json_encode(
-                array(
+            $response = array(
                 "access_token" => $access_token,
                 "token_type" => "Bearer",
                 "expires_in" => 1800,
                 "id_token" => $id_token
-                )
             );
 
-            echo $response;
+            echo json_encode($response);
 
             return $response;
             
@@ -176,7 +174,7 @@ class TokenEndpoint
     private function getBasicAuthCredential()
     {
         $credential = false;
-        $authHeader = $this->getAuthorizationHeader();
+        $authHeader = $this->getAuthorizationHeader() || '';
         $this->database->log("TokenEndpoint", "TOKEN BASIC AUTH", $authHeader);
         if (substr($authHeader, 0, 5) == 'Basic') {
             $creds = base64_decode(substr($authHeader, 6));
