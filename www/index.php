@@ -112,6 +112,8 @@ $f3->set(
     }
 );
 
+//$logger = $f3->get("LOGGER");
+//$logger->log('spid-cie-oidc-php', $_SERVER['REQUEST_METHOD'] . ' ' . $_SERVER['REQUEST_URI'], $_REQUEST); 
 
 //----------------------------------------------------------------------------------------
 // Routes for SA
