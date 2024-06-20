@@ -144,7 +144,7 @@ class TokenEndpoint
             $this->database->log("TokenEndpoint", "ID_TOKEN", $id_token);
 
             header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(
+            $response = json_encode(
                 array(
                 "access_token" => $access_token,
                 "token_type" => "Bearer",
@@ -152,6 +152,11 @@ class TokenEndpoint
                 "id_token" => $id_token
                 )
             );
+
+            echo $response;
+
+            return $response;
+            
         } catch (\Exception $e) {
             // API /token error
             http_response_code(400);

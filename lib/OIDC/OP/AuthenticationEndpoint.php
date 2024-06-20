@@ -109,6 +109,8 @@ class AuthenticationEndpoint
                 $return .= '&error_description=' . $e->getMessage();
                 $return .= '&state=' . $state;
                 header('Location: ' . $return);
+
+                return $return;
             }
         }
     }
@@ -156,6 +158,8 @@ class AuthenticationEndpoint
             }
             $return .= '&state=' . $state;
             header("Location: " . $return);
+
+            return $return;
         } else {
             throw new \Exception("Invalid origin");
         }

@@ -37,5 +37,7 @@ class EntityListingEndpoint
         $mediaType = 'application/json';
         header('Content-Type: ' . $mediaType);
         echo json_encode($list);
+
+        return $list;
     }
 }

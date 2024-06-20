@@ -129,14 +129,17 @@ $f3->route(
         }
 
         $logger = $f3->get("LOGGER");
-        $logger->log('OIDC', 'GET /.well-known/openid-federation');
 
         $output = $f3->get("GET.output") ?? 'default';
         $json = (strtolower($output) == 'json');
 
         $mediaType = $json ? 'application/json' : 'application/entity-statement+jwt';
         header('Content-Type: ' . $mediaType);
-        echo EntityStatement::makeSAEntityStatementFromConfig($config, $json);
+        $response = EntityStatement::makeSAEntityStatementFromConfig($config, $json);
+
+        echo $response;
+
+        $logger->log('spid-cie-oidc-php', 'GET /.well-known/openid-federation', $_GET, $response); 
     }
 );
 
@@ -153,17 +156,18 @@ $f3->route(
 
         try {
             $logger = $f3->get("LOGGER");
-            $logger->log('OIDC FED /fetch', 'GET ' . $_SERVER['REQUEST_URI']);
 
             $handler = new FetchEntityStatementEndpoint($sa_config, $rp_config);
-            $handler->process();
+            $response = $handler->process();
+
+            $logger->log('spid-cie-oidc-php', 'GET /fetch', $_GET, $response); 
  
         } catch (\Exception $e) {
             $f3->error(400, $e->getMessage());
         }
     } 
 );
-
+ 
 // GET /list
 $f3->route(
     'GET /list',
@@ -176,10 +180,11 @@ $f3->route(
 
         try {
             $logger = $f3->get("LOGGER");
-            $logger->log('OIDC', 'GET /list');
 
             $handler = new EntityListingEndpoint($config);
-            $handler->process();
+            $response = $handler->process();
+
+            $logger->log('spid-cie-oidc-php', 'GET /list', $_GET, $response); 
  
         } catch (\Exception $e) {
             $f3->error(400, $e->getMessage());
@@ -213,17 +218,20 @@ $f3->route(
 
         try {
             $logger = $f3->get("LOGGER");
-            $logger->log('OIDC', 'POST /trust_mark');
 
             $mediaType = 'application/json';
             header('Content-Type: ' . $mediaType);
 
             $trust_mark = new TrustMark($config, $sub, $id, $organization_type, $id_code, $email, $organization_name, $sa_profile);
-            echo json_encode(array(
+            $response = array(
                 'id' => $id, 
                 'iss' => $config['client_id'],
                 'trust_mark' => $trust_mark->makeJwt()
-            )); 
+            );
+
+            echo json_encode($response);
+
+            $logger->log('spid-cie-oidc-php', 'POST /trust_mark', $_POST, $response);
 
         } catch (Exception $e) {
             $f3->error(500, $e->getMessage());
@@ -242,11 +250,12 @@ $f3->route(
         }
 
         try {
-            $logger = $f3->get("LOGGER");
-            $logger->log('OIDC', 'GET /trust_mark_status');
+            $logger = $f3->get("LOGGER"); 
 
             $handler = new TrustMarkStatusEndpoint($config);
-            $handler->process();
+            $response = $handler->process();
+
+            $logger->log('spid-cie-oidc-php', 'POST /trust_mark_status', $_POST, $response);
  
         } catch (\Exception $e) {
             $f3->error(400, $e->getMessage());
@@ -273,14 +282,17 @@ $f3->route(
         }
 
         $logger = $f3->get("LOGGER");
-        $logger->log('OIDC', 'GET /'.$domain.'/.well-known/openid-federation');
 
         $output = $f3->get("GET.output") ?? 'default';
         $json = (strtolower($output) == 'json');
 
         $mediaType = $json ? 'application/json' : 'application/entity-statement+jwt';
         header('Content-Type: ' . $mediaType);
-        echo EntityStatement::makeRPEntityConfigurationFromConfig($base, $domain, $config, $json);
+        $response = EntityStatement::makeRPEntityConfigurationFromConfig($base, $domain, $config, $json);
+
+        echo $response;
+
+        $logger->log('spid-cie-oidc-php', 'GET /'.$domain.'/.well-known/openid-federation', $_GET, $response);
     }
 );
 
@@ -299,7 +311,6 @@ $f3->route(
         }
 
         $logger = $f3->get("LOGGER");
-        $logger->log('VIEW', 'GET /oidc/rp/authz');
 
         // stash params state from proxy requests
         // (OIDC generic 2 OIDC SPID)
@@ -323,6 +334,8 @@ $f3->route(
 
         $f3->set("DOMAIN", $domain);
         echo View::instance()->render('view/login.php');
+
+        $logger->log('spid-cie-oidc-php', 'GET /oidc/rp/authz', $_GET, 'redirect to view/login.php');
     }
 );
 
@@ -346,8 +359,6 @@ $f3->route(
         $rp_database = $f3->get("RP_DATABASE");
         $hooks = $f3->get("HOOKS");
         $logger = $f3->get("LOGGER");
-
-        $logger->log('OIDC', 'GET /oidc/rp/authz/' . $f3->get('PARAMS.op'));
 
         $ta_id = base64_decode($f3->get('PARAMS.ta'));
         $op_id = base64_decode($f3->get('PARAMS.op'));
@@ -394,6 +405,8 @@ $f3->route(
             $nonce,
             Util::base64UrlEncode(str_pad($req_id, 32))
         );
+
+        $logger->log('spid-cie-oidc-php', 'GET /oidc/rp/authz/' . $ta_id . '/' . $op_id, $_GET, 'redirect to ' . $authenticationRequestURL);
     }
 );
 
@@ -415,8 +428,6 @@ $f3->route(
         $hooks = $f3->get("HOOKS");
         $logger = $f3->get("LOGGER");
 
-        $logger->log('OIDC', 'GET /oidc/rp/redirect');
-
         $error = $f3->get("GET.error");
         if ($error != null) {
             $error_description = $f3->get("GET.error_description");
@@ -437,6 +448,8 @@ $f3->route(
         $state = $request['state'];
         $code_verifier = $request['code_verifier'];
 
+        $logger->log('spid-cie-oidc-php', 'GET /oidc/rp/redirect', $_GET);
+
         // resolve entity statement on federation
         try {
             $trustchain = new TrustChain($config, $rp_database, $op_id, $ta_id);
@@ -453,9 +466,12 @@ $f3->route(
             $tokenResponse = $tokenRequest->send($token_endpoint, $code, $code_verifier);
 
             $access_token = $tokenResponse->access_token;
+            $logger->log('spid-cie-oidc-php', 'TOKEN REQUEST POST ' . $token_endpoint, $tokenRequest, $tokenResponse);
 
             $userinfoRequest = new UserinfoRequest($config, $configuration->metadata->openid_provider, $hooks);
             $userinfoResponse = $userinfoRequest->send($userinfo_endpoint, $access_token);
+
+            $logger->log('spid-cie-oidc-php', 'USERINFO REQUEST GET ' . $userinfo_endpoint, $userinfoRequest, $userinfoResponse);
 
             $f3->set(
                 'SESSION.auth',
@@ -475,6 +491,9 @@ $f3->route(
             $responseHandlerClass = $config['proxy_response_handler'];
             $responseHandler = new $responseHandlerClass($config);
             $responseHandler->sendResponse($redirect_uri, $userinfoResponse, $state);
+
+            $logger->log('spid-cie-oidc-php', 'GET /oidc/rp/redirect', $_GET, 'redirect response to ' . $redirect_uri);
+
         } catch (Exception $e) {
             $code = in_array($e->getCode(), [200, 301, 302, 400, 401, 404]) ? $e->getCode() : 500;
             $f3->error($code, $e->getMessage());
@@ -497,9 +516,15 @@ $f3->route(
         }
 
         $rp_database = $f3->get("RP_DATABASE");
+        $logger = $f3->get("LOGGER");
+
         $mediaType = 'application/entity-statement+jwt';
         header('Content-Type: ' . $mediaType);
-        echo ResolveEndpoint::resolve($config, $rp_database, $sub, $anchor);
+        $response = ResolveEndpoint::resolve($config, $rp_database, $sub, $anchor);
+
+        echo $response;
+
+        $logger->log('spid-cie-oidc-php', 'GET /resolve', $_GET, $response);
     }
 );
 
@@ -519,6 +544,7 @@ $f3->route(
 
         $rp_database = $f3->get("RP_DATABASE");
         $auth = $f3->get("SESSION.auth");
+        $logger = $f3->get("LOGGER");
 
         $ta_id = $auth['ta_id'];
         $op_id = $auth['op_id'];
@@ -544,9 +570,12 @@ $f3->route(
             $f3->error(401, $e->getMessage());
         }
 
-
         header('Content-Type: application/json');
-        echo json_encode($introspectionResponse);
+        $response = json_encode($introspectionResponse);
+
+        echo $response;
+
+        $logger->log('spid-cie-oidc-php', 'GET /oidc/rp/introspection', $_GET, $response);
     }
 );
 
@@ -566,6 +595,7 @@ $f3->route(
 
         $rp_database = $f3->get("RP_DATABASE");
         $auth = $f3->get("SESSION.auth");
+        $logger = $f3->get("LOGGER");
 
         $ta_id = $auth['ta_id'];
         $op_id = $auth['op_id'];
@@ -599,6 +629,7 @@ $f3->route(
             $post_logout_redirect_uri = '/oidc/rp/authz';
         }
 
+        $logger->log('spid-cie-oidc-php', 'GET /oidc/rp/logout', $_GET, 'redirect to ' . $post_logout_redirect_uri);
         $f3->reroute($post_logout_redirect_uri);
     }
 );
@@ -615,11 +646,17 @@ $f3->route(
     'GET /oidc/proxy/.well-known/openid-configuration',
     function ($f3) {
         $config = $f3->get("CONFIG");
+        $logger = $f3->get("LOGGER");
 
         try {
             $op_metadata = new OP_Metadata($config);
             header('Content-Type: application/json');
-            echo $op_metadata->getConfiguration();
+            $response = $op_metadata->getConfiguration();
+            
+            echo $response;
+
+            $logger->log('spid-cie-oidc-php', 'GET /oidc/proxy/.well-known/openid-configuration', $_GET, $response);
+
         } catch (Exception $e) {
             $f3->error(500, $e->getMessage());
         }
@@ -632,10 +669,14 @@ $f3->route(
     function ($f3) {
         $config = $f3->get("CONFIG");
         $op_database = $f3->get("OP_DATABASE");
+        $logger = $f3->get("LOGGER");
 
         try {
             $handler = new CertsEndpoint($config, $op_database);
-            $handler->process();
+            $response = $handler->process();
+
+            $logger->log('spid-cie-oidc-php', 'GET /oidc/proxy/certs', $_GET, $response);
+
         } catch (Exception $e) {
             $f3->error(500, $e->getMessage());
         }
@@ -648,10 +689,14 @@ $f3->route(
     function ($f3) {
         $config = $f3->get("CONFIG");
         $op_database = $f3->get("OP_DATABASE");
+        $logger = $f3->get("LOGGER");
 
         try {
             $handler = new AuthenticationEndpoint($config, $op_database);
-            $handler->process();
+            $response = $handler->process();
+
+            $logger->log('spid-cie-oidc-php', 'GET /oidc/proxy/authz', $_GET, $response);
+
         } catch (\Exception $e) {
             $f3->error(400, $e->getMessage());
         }
@@ -664,10 +709,13 @@ $f3->route(
     function ($f3) {
         $config = $f3->get("CONFIG");
         $op_database = $f3->get("OP_DATABASE");
+        $logger = $f3->get("LOGGER");
 
         try {
             $handler = new AuthenticationEndpoint($config, $op_database);
-            $handler->callback();
+            $response = $handler->callback();
+
+            $logger->log('spid-cie-oidc-php', 'POST /oidc/proxy/callback', $_POST, $response);
         } catch (\Exception $e) {
             $f3->error(400, $e->getMessage());
         }
@@ -680,10 +728,13 @@ $f3->route(
     function ($f3) {
         $config = $f3->get("CONFIG");
         $op_database = $f3->get("OP_DATABASE");
+        $logger = $f3->get("LOGGER");
 
         try {
             $handler = new TokenEndpoint($config, $op_database);
-            $handler->process();
+            $response = $handler->process();
+
+            $logger->log('spid-cie-oidc-php', 'POST /oidc/proxy/token', $_POST, $response);
         } catch (\Exception $e) {
             $f3->error(400, $e->getMessage());
         }
@@ -696,10 +747,13 @@ $f3->route(
     function ($f3) {
         $config = $f3->get("CONFIG");
         $op_database = $f3->get("OP_DATABASE");
+        $logger = $f3->get("LOGGER");
 
         try {
             $handler = new UserinfoEndpoint($config, $op_database);
-            $handler->process();
+            $response = $handler->process();
+
+            $logger->log('spid-cie-oidc-php', 'POST /oidc/proxy/userinfo', $_POST, $response);
         } catch (\Exception $e) {
             $f3->error(400, $e->getMessage());
         }
@@ -712,10 +766,16 @@ $f3->route(
     function ($f3) {
         $config = $f3->get("CONFIG");
         $op_database = $f3->get("OP_DATABASE");
+        $logger = $f3->get("LOGGER");
 
         try {
             $handler = new SessionEndEndpoint($config, $op_database);
-            $handler->process();
+            $response = $handler->process();
+
+            echo $response;
+
+            $logger->log('spid-cie-oidc-php', 'GET /oidc/proxy/session/end', $_GET, $response);
+
         } catch (\Exception $e) {
             $f3->error(400, $e->getMessage());
         }

@@ -63,6 +63,8 @@ class FetchEntityStatementEndpoint
             header('Content-Type: ' . $mediaType);
             echo $entity_statement;
 
+            return $entity_statement;
+
         } catch(\Exception $e) {
             // API error
             http_response_code(400);

@@ -66,7 +66,12 @@ class UserinfoEndpoint
             $this->database->log("UserinfoEndpoint", "USERINFO", $userinfo);
 
             header('Content-Type: application/json; charset=utf-8');
-            echo json_encode($userinfo);
+            $response = json_encode($userinfo);
+
+            echo $response;
+
+            return $response;
+            
         } catch (\Exception $e) {
             http_response_code(400);
             if (!$this->config['production']) {

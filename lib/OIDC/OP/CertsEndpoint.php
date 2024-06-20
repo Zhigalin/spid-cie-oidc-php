@@ -65,6 +65,9 @@ class CertsEndpoint
 
             header('Content-Type: application/json; charset=utf-8');
             echo json_encode($jwk);
+
+            return $jwk;
+
             // @codeCoverageIgnoreStart
         } catch (\Exception $e) {
             http_response_code(400);

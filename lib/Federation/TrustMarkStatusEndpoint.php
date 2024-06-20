@@ -39,7 +39,7 @@ class TrustMarkStatusEndpoint
                 // search trust mark for sub id and sub
                 $found = array();
                 foreach($this->config as $client) {
-                    foreach($client['trust_mark'] as $trust_mark_item) {
+                    foreach($client['trust_marks'] as $trust_mark_item) {
                         if($id == $trust_mark_item['id']) {
                             $trust_mark = $trust_mark_item['trust_mark'];
                             $trust_mark_payload = JWT::getJWSPayload($trust_mark);
@@ -90,6 +90,8 @@ class TrustMarkStatusEndpoint
             $mediaType = 'application/json';
             header('Content-Type: ' . $mediaType);
             echo json_encode($trust_mark_status);
+
+            return $trust_mark_status;
 
         } catch(\Exception $e) {
             // API error

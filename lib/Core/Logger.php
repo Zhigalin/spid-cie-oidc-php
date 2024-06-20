@@ -24,12 +24,19 @@
 
 namespace SPID_CIE_OIDC_PHP\Core;
 
+use Monolog\Level;
+use Monolog\Logger as MonoLogger;
+use Monolog\Handler\SyslogHandler; 
+use Monolog\Handler\StreamHandler; 
+use Monolog\Formatter\SyslogFormatter;
+
 /**
  *  Provides functions to save logs.
  */
 class Logger
 {
-    private array $config;
+    private array $config; 
+    private MonoLogger $logger;
 
     /**
      *  creates a new Logger instance
@@ -45,6 +52,14 @@ class Logger
             $config = array();
         }
         $this->config = $config;
+
+        //$handler = new SyslogHandler('spid-cie-oidc-php');
+        $handler = new StreamHandler($this->config['log_path']);
+        $formatter = new SyslogFormatter();
+        $handler->setFormatter($formatter);
+
+        $this->logger = new MonoLogger('spid-cie-oidc-php-logger');
+        $this->logger->pushHandler($handler); 
     }
 
     /**
@@ -58,12 +73,18 @@ class Logger
      * @return             boolean result of save
      * @codeCoverageIgnore
      */
-    public function log(string $tag, string $value, $object = null, int $priority = LOG_NOTICE)
+    public function log(string $tag, string $value = '', $request = null, $response = null)
     {
-        $message = "[" . $_SERVER['REMOTE_ADDR'] . "][" . $tag . "] - " . $value;
-        if ($object != null) {
-            $message .= "(" . json_encode($object) . ")";
-        }
-        return error_log($message);
+        $message = "[" . $_SERVER['REMOTE_ADDR'] . "][" . $tag . "] : " . $value;
+
+        if ($request != null) {
+            $message .= ' \n\nREQUEST: ' . json_encode($request, JSON_PRETTY_PRINT);
+        }         
+
+        if ($response != null) {
+            $message .= ' \n\nRESPONSE: ' . json_encode($response, JSON_PRETTY_PRINT);
+        } 
+        
+        $this->logger->info($message);
     }
 }
