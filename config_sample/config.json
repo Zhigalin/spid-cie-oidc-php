@@ -4,6 +4,7 @@
     "www_dir": "/var/www/html",
     "service_name": "",
     "log_path": "./log/spid-cie-oidc-php.log",
+    "homepage": "/test.php", 
     "default_domain": "default",
     "sa": {
         "client_id": "http://relying-party-php.org:8003/",

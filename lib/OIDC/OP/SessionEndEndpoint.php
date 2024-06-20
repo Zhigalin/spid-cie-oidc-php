@@ -56,8 +56,8 @@ class SessionEndEndpoint
      */
     public function process()
     {
-        $id_token_hint = $_GET['id_token_hint'];
-        $post_logout_redirect_uri = $_GET['post_logout_redirect_uri'];
+        $id_token_hint = isset($_GET['id_token_hint'])? $_GET['id_token_hint'] : null;
+        $post_logout_redirect_uri = isset($_GET['post_logout_redirect_uri'])? $_GET['post_logout_redirect_uri'] : null;
 
         if ($id_token_hint) {
             // @codeCoverageIgnoreStart
@@ -108,7 +108,9 @@ class SessionEndEndpoint
             // @codeCoverageIgnoreEnd
         }
 
-        $logout_url .= 'oidc/rp/' . $request['client_id'] . '/logout?post_logout_redirect_uri=' . $post_logout_redirect_uri;
+        if(isset($request) && $request!=null) {
+            $logout_url .= 'oidc/rp/' . $request['client_id'] . '/logout?post_logout_redirect_uri=' . $post_logout_redirect_uri;
+        }
 
         // @codeCoverageIgnoreStart
         header('Location: ' . $logout_url);
