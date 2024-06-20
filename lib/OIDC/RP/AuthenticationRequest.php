@@ -191,7 +191,11 @@ class AuthenticationRequest
     public function send(string $op_issuer, string $authorization_endpoint, array $acr, array $user_attributes, string $code_verifier, string $nonce, string $state)
     {
         $authenticationRequestURL = $this->getRedirectURL($op_issuer, $authorization_endpoint, $acr, $user_attributes, $code_verifier, $nonce, $state);
+        $this->sendURL($authenticationRequestURL);
+    }
 
+    public function sendURL(string $authenticationRequestURL)
+    {
         // HOOK: pre_authorization_request
         if ($this->hooks != null) {
             $hooks_pre = $this->hooks['pre_authorization_request'];

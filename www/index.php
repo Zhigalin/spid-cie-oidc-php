@@ -396,7 +396,7 @@ $f3->route(
         $op_issuer = $configuration->metadata->openid_provider->issuer;
  
         $authenticationRequest = new AuthenticationRequest($base, $service_name, $domain, $config, $hooks);
-        $authenticationRequestURL = $authenticationRequest->send(
+        $authenticationRequestURL = $authenticationRequest->getRedirectURL(
             $op_issuer,
             $authorization_endpoint,
             $acr,
@@ -406,6 +406,7 @@ $f3->route(
             Util::base64UrlEncode(str_pad($req_id, 32))
         );
 
+        $authenticationRequest->sendURL($authenticationRequestURL);
         $logger->log('spid-cie-oidc-php', 'GET /oidc/rp/authz/' . $ta_id . '/' . $op_id, $_GET, 'redirect to ' . $authenticationRequestURL);
     }
 );
