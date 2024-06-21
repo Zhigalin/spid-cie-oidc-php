@@ -206,6 +206,7 @@
             "description": "TEST WordPress",
             "technical_reference": "technical reference",
             "technical_contact": "contact@email",
+            "rp_proxy_client": "2b4601ab-9e1b-4f5b-8b1e-3ae27beb9fdb",
             "client_id": "2b4601ab-9e1b-4f5b-8b1e-3ae27beb9fdb",
             "client_secret": "389451f0-dc60-4fba-8c03-eea4adb340b6",
             "redirect_uri": [
@@ -222,6 +223,7 @@
             "description": "TEST Drupal",
             "technical_reference": "technical reference",
             "technical_contact": "contact@email",
+            "rp_proxy_client": "9798f8ca-2682-49bc-ac2f-67b568b86b74",
             "client_id": "9798f8ca-2682-49bc-ac2f-67b568b86b74",
             "client_secret": "59764f55-eb1e-49a6-80f7-0efc7edeeeb2",
             "redirect_uri": [

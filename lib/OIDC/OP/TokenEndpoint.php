@@ -126,15 +126,21 @@ class TokenEndpoint
                 throw new \Exception('invalid_code');
             }
 
+            $rp_proxy_client = $clients[$client_id]['rp_proxy_client'];
+
+            if (!in_array($rp_proxy_client, array_keys($this->config['rp_proxy_clients']))) {
+                throw new \Exception('invalid_client');
+            }
+
             $access_token = $this->database->createAccessToken($code);
             $userinfo = (array) $this->database->getUserinfo($access_token);
             $request = $this->database->getRequestByCode($code);
 
             $subject = $userinfo['fiscal_number'];
             $exp_time = 1800;
-            $iss = $this->config['rp_proxy_clients'][$client_id]['client_id'];
+            $iss = $this->config['rp_proxy_clients'][$rp_proxy_client]['client_id'];
             $aud = $client_id;
-            $jwk_pem = $this->config['rp_proxy_clients'][$client_id]['cert_private'];
+            $jwk_pem = $this->config['rp_proxy_clients'][$rp_proxy_client]['cert_private'];
             $nonce = $request['nonce'];
 
             $id_token = $this->makeIdToken($subject, $exp_time, $iss, $aud, $nonce, $jwk_pem);

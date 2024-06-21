@@ -84,6 +84,12 @@ class AuthenticationEndpoint
                 throw new \Exception('invalid_redirect_uri');
             }
 
+            $rp_proxy_client = $clients[$client_id]['rp_proxy_client'];
+
+            if (!array_key_exists($rp_proxy_client, $this->config['rp_proxy_clients'])) {
+                throw new \Exception('invalid_client');
+            }
+
             $req_id = $this->database->updateRequest($client_id, $redirect_uri, $state, $nonce);
             if ($req_id == null) {
                 $req_id = $this->database->createRequest($client_id, $redirect_uri, $state, $nonce);
@@ -94,7 +100,7 @@ class AuthenticationEndpoint
                 $url = '/' . $this->config['service_name'] . '/';
             }
 
-            $url .= 'oidc/rp/' . $client_id . '/authz?state=' . base64_encode($req_id);
+            $url .= 'oidc/rp/' . $rp_proxy_client . '/authz?state=' . base64_encode($req_id);
             header('Location: ' . $url);
         } catch (\Exception $e) {
             if (!$this->config['production'] || $e->getMessage() == 'invalid_redirect_uri') {
