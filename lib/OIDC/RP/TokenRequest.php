@@ -82,18 +82,18 @@ class TokenRequest
         $code = $auth_code;
         $grant_type = ($refresh && $refresh_token != null) ? 'refresh_token' : 'authorization_code';
 
-        $crt = $this->config['cert_public'];
+        $crt = $this->config['cert_public_core_sig'];
         $crt_jwk = JWT::getCertificateJWK($crt);
 
         $header = array(
             "typ" => "JWT",
             "alg" => "RS256",
-            "jwk" => $crt_jwk,
             "kid" => $crt_jwk['kid'],
-            "x5c" => $crt_jwk['x5c']
+            //"jwk" => $crt_jwk,
+            //"x5c" => $crt_jwk['x5c']
         );
 
-        $key = $this->config['cert_private'];
+        $key = $this->config['cert_private_core_sig'];
         $key_jwk = JWT::getKeyJWK($key);
 
         $signed_client_assertion = JWT::makeJWS($header, $client_assertion, $key_jwk);
@@ -128,7 +128,7 @@ class TokenRequest
         // @codeCoverageIgnoreEnd
 
         $response = $this->http_client->post($token_endpoint, [ 'form_params' => $data ]);
-
+        
         // @codeCoverageIgnoreStart
         $code = $response->getStatusCode();
         if ($code != 200) {

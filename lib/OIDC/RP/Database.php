@@ -31,6 +31,9 @@ use SPID_CIE_OIDC_PHP\Core\Util;
  */
 class Database
 {
+
+    private \SQLite3 $db;
+    
     /**
      *  creates a new Database instance
      *
@@ -313,5 +316,7 @@ class Database
             ":value" => json_encode($value),
             ":severity" => $severity
         ));
+
+        error_log("[" . $severity . "] " . $context . ":" . $tag . " - " . json_encode($value));
     }
 }
